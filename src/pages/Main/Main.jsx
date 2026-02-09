@@ -1,11 +1,11 @@
 import styles from './styles.module.css'
 import NewsBanner from '../../components/NewsBanner/NewsBanner';
 import { useEffect, useState } from 'react';
-import { getNews } from '../../api/apiNews';
-import { allNews } from '../../api/data'
+import { getCategories, getNews } from '../../api/apiNews';
 import NewsList from '../../components/NewsList/NewsList';
 import Skeleton from '../../components/Skeleton/Skeleton';
 import Pagination from '../../components/Pagination/Pagination';
+import Categories from '../../components/Categories/Categories';
 
 const Main = () => {
 
@@ -13,13 +13,19 @@ const Main = () => {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const totalPages = 10;
   const pageSize = 10;
 
   const fetchNews = async (currentPage) => {
     try {
       setLoading(true);
-      const response = await getNews(currentPage, pageSize);
+      const response = await getNews({
+        page_number: currentPage,
+        page_size: pageSize,
+        category: selectedCategory === 'All' ? null : selectedCategory  
+      });
       setNews(response.news);
       setLoading(false);
     } catch (error) {
@@ -27,16 +33,28 @@ const Main = () => {
     }
   }
 
+  const fetchCategories = async () => {
+    try {
+      const response = await getCategories();
+      setCategories(["All", ...response.categories]);
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   useEffect(() => {
     fetchNews(currentPage);
-  }, [currentPage])
+  }, [currentPage, selectedCategory])
+
+  useEffect(() => {
+    fetchCategories();
+  }, [])
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
   }
-
 
   const handlePreviosPage = () => {
     if (currentPage > 1) {
@@ -48,29 +66,10 @@ const Main = () => {
     setCurrentPage(numberPage);
   }
 
-  //Работаем с мок данными, чтобы запросы на сервер не тратить 
-  // useEffect(() => {
-  //   const fetchNews = () => { 
-  //     return new Promise((resolve) => {
-  //       setTimeout(() => {
-  //         resolve(allNews);
-  //       }, 3000);
-  //     });
-  //   };
-
-  //   const loadNews = async () => {
-  //     setLoading(true);
-  //     const result = await fetchNews();
-  //     console.log(result)
-  //     setNews(result);
-  //     setLoading(false);
-  //   }
-
-  //   loadNews();
-  // }, []);
 
   return (
     <main className={styles.main}>
+      <Categories categories={categories} setSelectedCategory={setSelectedCategory} selectedCategory={selectedCategory} />
       {news.length > 0 && !loading ? (
         <NewsBanner item={news[0]} />
         ) : (
